@@ -43,8 +43,11 @@ namespace Wallpaperer.Droplet
         /// <remarks>Writes a file of the same name with -wallpapered appended to the end in PNG format to the same location as the source.</remarks>
         public static void Main(String[] args)
         {
-            if (args.Length != 1)
+            if(args.Length != 1)
+            {
                 DisplayInstructions();
+                return;
+            }
 
             try
             {
