@@ -8,6 +8,7 @@ namespace Wallpaperer.Droplet
     public class Program
     {
         private static readonly Int32 MaxWidth;
+        private static readonly Int32 MaxHeight;
         private static readonly Int16 DisplayWidth;
         private static readonly Int16 DisplayHeight;
         private static readonly Byte BezelWidth;
@@ -25,13 +26,14 @@ namespace Wallpaperer.Droplet
 
             DisplayCount = (Byte)Screen.AllScreens.Length;
 
-            //Compute the maximum width (MaxWidth) that the wallpaper should be.
-            MaxWidth = 0;
+            //Compute the maximum width (MaxWidth) and maximum height (MaxHeight) that the wallpaper should be.
+            MaxWidth = 0; MaxHeight = 0;
             foreach(var screen in Screen.AllScreens)
             {
                 MaxWidth += screen.Bounds.Width;
+                MaxHeight = Math.Max(screen.Bounds.Height, MaxHeight);
             }
-            MaxWidth += BezelWidth * ( ( DisplayCount - 1 ) * 2 );
+            MaxWidth += BezelWidth * ( ( DisplayCount - 1 ) * 2 );            
         }
 
         /// <summary>
@@ -54,7 +56,7 @@ namespace Wallpaperer.Droplet
                 using (Bitmap sourceBitmap = new Bitmap(filePath))
                 {
                     //Check size
-                    if(sourceBitmap.Width != MaxWidth || sourceBitmap.Height != DisplayHeight)
+                    if(sourceBitmap.Width != MaxWidth || sourceBitmap.Height != MaxHeight)
                     {
                         DisplayInstructions();
                         return;
@@ -147,7 +149,7 @@ namespace Wallpaperer.Droplet
         /// </summary>
         private static void DisplayInstructions()
         {
-            MessageBox.Show(String.Format("Please drop a {0} × {1} image on me.",MaxWidth,DisplayHeight));
+            MessageBox.Show(String.Format("Please drop a {0} × {1} image on me.",MaxWidth,MaxHeight));
         }
     }
 }
