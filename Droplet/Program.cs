@@ -22,12 +22,20 @@ namespace Wallpaperer.Droplet
             DisplayWidth = Settings.Default.DisplayWidth;
             DisplayHeight = Settings.Default.DisplayHeight;
             BezelWidth = Settings.Default.BezelWidth;
-            DisplayCount = Settings.Default.DisplayCount;
-            MaxWidth = (DisplayWidth * DisplayCount) + (BezelWidth * ((DisplayCount - 1)*2));
+
+            DisplayCount = (Byte)Screen.AllScreens.Length;
+
+            //Compute the maximum width (MaxWidth) that the wallpaper should be.
+            MaxWidth = 0;
+            foreach(var screen in Screen.AllScreens)
+            {
+                MaxWidth += screen.Bounds.Width;
+            }
+            MaxWidth += BezelWidth * ( ( DisplayCount - 1 ) * 2 );
         }
 
         /// <summary>
-        /// Takes a 6000x1080 bitmap and crops it to 5760x1080 while allowing for the bezel width of the monitors.
+        /// Takes a screen-size + internal bezel width sized bitmap and crops it to remove the area taken up by the bezels. Making the image appear as if it was seen through a window.
         /// </summary>
         /// <param name="args">The arguments. The path to a valid bitmap file.</param>
         /// <remarks>Writes a file of the same name with -wallpapered appended to the end in PNG format to the same location as the source.</remarks>
@@ -46,8 +54,11 @@ namespace Wallpaperer.Droplet
                 using (Bitmap sourceBitmap = new Bitmap(filePath))
                 {
                     //Check size
-                    if (sourceBitmap.Width != MaxWidth || sourceBitmap.Height != DisplayHeight)
+                    if(sourceBitmap.Width != MaxWidth || sourceBitmap.Height != DisplayHeight)
+                    {
                         DisplayInstructions();
+                        return;
+                    }
 
                     //Wallpaper Bitmap
                     Bitmap wallpaper = new Bitmap(DisplayWidth * DisplayCount,DisplayHeight);
