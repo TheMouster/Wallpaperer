@@ -66,30 +66,30 @@ namespace Wallpaperer.Droplet
                     }
 
                     //Wallpaper Bitmap
-                    Bitmap wallpaper = new Bitmap(DisplayWidth * DisplayCount,DisplayHeight);
+                    Int32 croppedWidth = MaxWidth - ((DisplayCount - 1) * (BezelWidth * 2));
+                    Bitmap wallpaper = new Bitmap(croppedWidth,MaxHeight);
 
                     //Set up cropping region and bitmap
-                    Size area = new Size(DisplayWidth, DisplayHeight);
+                    Size area = new Size(Screen.AllScreens[0].Bounds.Width, MaxHeight);
                     Point sourceOrigin = new Point(0, 0);
                     Point destinationOrigin = new Point(0, 0);
                     Rectangle sourceRegion = new Rectangle(sourceOrigin, area);
                     Rectangle destinationRegion = new Rectangle(sourceOrigin,area);                    
-                    //Bitmap cropped;
 
-                    Int32 monitorWidth = area.Width + (BezelWidth * 2);
+                    Int32 monitorWidth = 0;
                     for (int i = 0; i < DisplayCount; i++)
                     {
                         //Move origins
-                        sourceOrigin.X = monitorWidth * i;
-                        sourceRegion.Location = sourceOrigin;
-                        destinationOrigin.X = DisplayWidth * i;
-                        destinationRegion.Location = destinationOrigin;
-                        
-                        //Perform crop
-                        //cropped = Clone(sourceBitmap, sourceRegion);
+                        monitorWidth = Screen.AllScreens[Math.Min(i,i-1)].Bounds.Width + (BezelWidth * 2) * i;
 
-                        //Add the cropped image to the result bitmap.
-                        //CopyRegionIntoImage(cropped, ref wallpaper, destinationRegion);
+                        sourceOrigin.X = monitorWidth;
+                        sourceRegion.Location = sourceOrigin;
+                        sourceRegion.Width = Screen.AllScreens[i].Bounds.Width;
+
+                        destinationOrigin.X = monitorWidth;
+                        destinationRegion.Location = destinationOrigin;
+                        destinationRegion.Width = Screen.AllScreens[i].Bounds.Width;
+                        
                         CopyRegionIntoImage(sourceBitmap, sourceRegion, ref wallpaper, destinationRegion);
                     }
 
