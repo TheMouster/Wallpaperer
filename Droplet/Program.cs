@@ -9,8 +9,6 @@ namespace Wallpaperer.Droplet
     {
         private static readonly Int32 MaxWidth;
         private static readonly Int32 MaxHeight;
-        private static readonly Int16 DisplayWidth;
-        private static readonly Int16 DisplayHeight;
         private static readonly Byte BezelWidth;
         private static readonly Byte DisplayCount;
 
@@ -20,8 +18,6 @@ namespace Wallpaperer.Droplet
         /// <remarks>Reads the settings from the settings configuration file.</remarks>
         static Program()
         {
-            DisplayWidth = Settings.Default.DisplayWidth;
-            DisplayHeight = Settings.Default.DisplayHeight;
             BezelWidth = Settings.Default.BezelWidth;
 
             DisplayCount = (Byte)Screen.AllScreens.Length;

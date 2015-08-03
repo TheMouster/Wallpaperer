@@ -31,23 +31,5 @@ namespace Wallpaperer.Droplet {
                 return ((byte)(this["BezelWidth"]));
             }
         }
-        
-        [global::System.Configuration.ApplicationScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("1920")]
-        public short DisplayWidth {
-            get {
-                return ((short)(this["DisplayWidth"]));
-            }
-        }
-        
-        [global::System.Configuration.ApplicationScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("1080")]
-        public short DisplayHeight {
-            get {
-                return ((short)(this["DisplayHeight"]));
-            }
-        }
     }
 }
