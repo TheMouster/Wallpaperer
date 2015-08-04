@@ -72,27 +72,27 @@ namespace Wallpaperer.Droplet
                     Rectangle sourceRegion = new Rectangle(sourceOrigin, area);
                     Rectangle destinationRegion = new Rectangle(sourceOrigin,area);                    
 
-                    Int32 previousMonitorWidth = 0, previousDisplayWidth = 0; //NOTE: versus display width. Youʼre cropping from an image the width of the monitors (including bezels) and pasting into an image the size of the displays.
-                    //TODO: As at 2015/08/03 the math in the routine below is incorrect weʼre acquiring zero twice i=0,i--=-1; i=1,i--=0, i=2,i--=1.
-                    Int32 accumulatedMonitorWidth = 0, accumulatedDisplayWidth = 0;
-                    //TODO: 2015/08/03 monitorWidth, displayWidth & accumulatedDisplayWidth
+                    Int32 monitorOrigin = 0, displayOrigin = 0;                    
                     for (int i = 0; i < DisplayCount; i++)
                     {
-                        //Move origins
-                        previousMonitorWidth = Screen.AllScreens[Math.Max(i,i-1)].Bounds.Width + (BezelWidth * 2);
-                        previousDisplayWidth = Screen.AllScreens[Math.Max(i, i - 1)].Bounds.Width;
-
-                        accumulatedMonitorWidth += previousMonitorWidth;
-
-                        sourceOrigin.X = accumulatedMonitorWidth;
+                        //Compute bitmap source point and area
+                        sourceOrigin.X = monitorOrigin;
                         sourceRegion.Location = sourceOrigin;
                         sourceRegion.Width = Screen.AllScreens[i].Bounds.Width;
 
-                        destinationOrigin.X = accumulatedDisplayWidth;
+                        //Compute bitmap destination point and area
+                        destinationOrigin.X = displayOrigin;
                         destinationRegion.Location = destinationOrigin;
                         destinationRegion.Width = Screen.AllScreens[i].Bounds.Width;
                         
                         CopyRegionIntoImage(sourceBitmap, sourceRegion, ref wallpaper, destinationRegion);
+
+                        //Move origins to next point
+                        Int32 currentMonitorWidth = Screen.AllScreens[Math.Max(i, i - 1)].Bounds.Width + ( BezelWidth * 2 );
+                        Int32 currentDisplayWidth = Screen.AllScreens[Math.Max(i, i - 1)].Bounds.Width;
+                        //NOTE: versus display width. Youʼre cropping from an image the width of the monitors (including bezels) and pasting into an image the size of the displays.
+                        monitorOrigin += currentMonitorWidth;
+                        displayOrigin += currentDisplayWidth;
                     }
 
                     wallpaper.Save(newFilePath);
