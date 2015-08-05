@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.Windows.Forms;
 using System.IO;
 
@@ -11,6 +12,7 @@ namespace Wallpaperer.Droplet
         private static readonly Int32 MaxHeight;
         private static readonly Byte BezelWidth;
         private static readonly Byte DisplayCount;
+        private static readonly Byte JPEGQuality;
 
         /// <summary>
         /// Initializes the <see cref="Program"/> class.
@@ -19,6 +21,7 @@ namespace Wallpaperer.Droplet
         static Program()
         {
             BezelWidth = Settings.Default.BezelWidth;
+            JPEGQuality = Settings.Default.JPEGQuality;
 
             DisplayCount = (Byte)Screen.AllScreens.Length;
 
@@ -50,7 +53,8 @@ namespace Wallpaperer.Droplet
                 String filePath = args[0];
                 String fileName = Path.GetFileNameWithoutExtension(filePath);
                 String fileDirectory = Path.GetDirectoryName(filePath);
-                String newFilePath = String.Format("{0}{1}{2}-wallpapered.png",fileDirectory,Path.DirectorySeparatorChar,fileName);                
+                String newFilePath = String.Format("{0}{1}{2}-wallpapered.png",fileDirectory,Path.DirectorySeparatorChar,fileName);
+                String jpgFilePath = String.Format("{0}{1}{2}-wallpapered.jpg", fileDirectory, Path.DirectorySeparatorChar, fileName);
 
                 using (Bitmap sourceBitmap = new Bitmap(filePath))
                 {
@@ -96,6 +100,14 @@ namespace Wallpaperer.Droplet
                     }
 
                     wallpaper.Save(newFilePath);
+
+                    //Save as JPEG
+                    var jpegImageCodecInfo = GetEncoderInfo("image/jpeg");
+                    var qualityEncoder = Encoder.Quality;
+                    var encoderParameters = new EncoderParameters(1);
+                    var encoderParameter = new EncoderParameter(qualityEncoder, (Int64)JPEGQuality);
+                    encoderParameters.Param[0] = encoderParameter;
+                    wallpaper.Save(jpgFilePath, jpegImageCodecInfo, encoderParameters);
                 }
             }
             catch (Exception)
@@ -155,6 +167,22 @@ namespace Wallpaperer.Droplet
         private static void DisplayInstructions()
         {
             MessageBox.Show(String.Format("Please drop a {0} × {1} image on me.",MaxWidth,MaxHeight));
+        }
+
+        /// <summary>
+        /// Gets the MIME encoder information.
+        /// </summary>
+        /// <param name="mimeType">The MIME type you want an encoder for.</param>
+        /// <returns>The ImageCodeInfo struct for the specified MIME type.</returns>
+        private static ImageCodecInfo GetEncoderInfo(String mimeType)
+        {
+            var encoders = ImageCodecInfo.GetImageEncoders();
+            for(int i = 0; i < encoders.Length; ++i)
+            {
+                if(encoders[i].MimeType == mimeType)
+                    return encoders[i];
+            }
+            return null;
         }
     }
 }
