@@ -31,5 +31,14 @@ namespace Wallpaperer.Droplet {
                 return ((byte)(this["BezelWidth"]));
             }
         }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("95")]
+        public byte JPEGQuality {
+            get {
+                return ((byte)(this["JPEGQuality"]));
+            }
+        }
     }
 }
