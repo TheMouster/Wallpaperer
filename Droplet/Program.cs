@@ -8,8 +8,8 @@ namespace Wallpaperer.Droplet
 {
     public class Program
     {
-        private static readonly Int32 MaxWidth;
-        private static readonly Int32 MaxHeight;
+        private static readonly Int32 TotalMonitorWidth;
+        private static readonly Int32 MaximumMonitorHeight;
         private static readonly Byte BezelWidth;
         private static readonly Byte DisplayCount;
         private static readonly Byte JPEGQuality;
@@ -26,13 +26,13 @@ namespace Wallpaperer.Droplet
             DisplayCount = (Byte)Screen.AllScreens.Length;
 
             //Compute the maximum width (MaxWidth) and maximum height (MaxHeight) that the wallpaper should be.
-            MaxWidth = 0; MaxHeight = 0;
-            foreach(var screen in Screen.AllScreens)
+            TotalMonitorWidth = 0; MaximumMonitorHeight = 0;
+            foreach(var display in Screen.AllScreens)
             {
-                MaxWidth += screen.Bounds.Width;
-                MaxHeight = Math.Max(screen.Bounds.Height, MaxHeight);
+                TotalMonitorWidth += display.Bounds.Width;
+                MaximumMonitorHeight = Math.Max(display.Bounds.Height, MaximumMonitorHeight);
             }
-            MaxWidth += BezelWidth * ( ( DisplayCount - 1 ) * 2 );            
+            TotalMonitorWidth += BezelWidth * ( ( DisplayCount - 1 ) * 2 );            
         }
 
         /// <summary>
@@ -42,45 +42,36 @@ namespace Wallpaperer.Droplet
         /// <remarks>Writes a file of the same name with -wallpapered appended to the end in PNG format to the same location as the source.</remarks>
         public static void Main(String[] args)
         {
-            if(args.Length != 1)
+            if(args.Length < 1)
             {
                 DisplayInstructions();
                 return;
             }
 
-            try
-            {
-                String filePath = args[0];
-                String fileName = Path.GetFileNameWithoutExtension(filePath);
-                String fileDirectory = Path.GetDirectoryName(filePath);
-                String newFilePath = String.Format("{0}{1}{2}-wallpapered.png",fileDirectory,Path.DirectorySeparatorChar,fileName);
-                String jpgFilePath = String.Format("{0}{1}{2}-wallpapered.jpg", fileDirectory, Path.DirectorySeparatorChar, fileName);
+            String filePath = args[0];
+            String fileName = Path.GetFileNameWithoutExtension(filePath);
+            String fileDirectory = Path.GetDirectoryName(filePath);
+            String jpgFilePath = String.Format("{0}{1}{2}-wallpapered.jpg", fileDirectory, Path.DirectorySeparatorChar, fileName);
 
-                using (Bitmap sourceBitmap = new Bitmap(filePath))
+            using (Bitmap sourceBitmap = new Bitmap(filePath))
+            {
+                //Check size
+                if(sourceBitmap.Width != TotalMonitorWidth || sourceBitmap.Height != MaximumMonitorHeight)
                 {
-                    //Check size
-                    if(sourceBitmap.Width != MaxWidth || sourceBitmap.Height != MaxHeight)
-                    {
-                        DisplayInstructions();
-                        return;
-                    }
-
-                    Bitmap wallpaper = CreateWallpaper(sourceBitmap);
-                    wallpaper.Save(newFilePath);
-
-                    //Save as JPEG
-                    var jpegImageCodecInfo = GetEncoderInfo("image/jpeg");
-                    var qualityEncoder = Encoder.Quality;
-                    var encoderParameters = new EncoderParameters(1);
-                    var encoderParameter = new EncoderParameter(qualityEncoder, (Int64)JPEGQuality);
-                    encoderParameters.Param[0] = encoderParameter;
-                    wallpaper.Save(jpgFilePath, jpegImageCodecInfo, encoderParameters);
+                    DisplayInstructions();
+                    return;
                 }
-            }
-            catch (Exception)
-            {
-                throw;
-            }
+
+                Bitmap wallpaper = CreateWallpaper(sourceBitmap);
+                
+                //Save as JPEG
+                var jpegImageCodecInfo = GetEncoderInfo("image/jpeg");
+                var qualityEncoder = Encoder.Quality;
+                var encoderParameters = new EncoderParameters(1);
+                var encoderParameter = new EncoderParameter(qualityEncoder, (Int64)JPEGQuality);
+                encoderParameters.Param[0] = encoderParameter;
+                wallpaper.Save(jpgFilePath, jpegImageCodecInfo, encoderParameters);
+            }            
         }
 
         /// <summary>
@@ -90,15 +81,15 @@ namespace Wallpaperer.Droplet
         /// <returns>The bitmap cropped to allow for the monitor bezel.</returns>
         private static Bitmap CreateWallpaper(Bitmap sourceBitmap)
         {
-            if(BezelWidth >= 0)
+            if(BezelWidth <= 0)
                 return sourceBitmap;
             
             //Wallpaper Bitmap
-            Int32 croppedWidth = MaxWidth - ( ( DisplayCount - 1 ) * ( BezelWidth * 2 ) );
-            Bitmap wallpaper = new Bitmap(croppedWidth, MaxHeight);
+            Int32 croppedWidth = TotalMonitorWidth - ( ( DisplayCount - 1 ) * ( BezelWidth * 2 ) );
+            Bitmap wallpaper = new Bitmap(croppedWidth, MaximumMonitorHeight);
 
             //Set up cropping region and bitmap
-            Size area = new Size(Screen.AllScreens[0].Bounds.Width, MaxHeight);
+            Size area = new Size(Screen.AllScreens[0].Bounds.Width, MaximumMonitorHeight);
             Point sourceOrigin = new Point(0, 0);
             Point destinationOrigin = new Point(0, 0);
             Rectangle sourceRegion = new Rectangle(sourceOrigin, area);
@@ -180,7 +171,7 @@ namespace Wallpaperer.Droplet
         /// </summary>
         private static void DisplayInstructions()
         {
-            MessageBox.Show(String.Format("Please drop a {0} × {1} image on me.",MaxWidth,MaxHeight));
+            MessageBox.Show(String.Format("Please drop a {0} × {1} image on me.",TotalMonitorWidth,MaximumMonitorHeight));
         }
 
         /// <summary>
