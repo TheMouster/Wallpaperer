@@ -38,8 +38,10 @@ namespace Wallpaperer.Droplet
         /// <summary>
         /// Takes a screen-size + internal bezel width sized bitmap and crops it to remove the area taken up by the bezels. Making the image appear as if it was seen through a window.
         /// </summary>
-        /// <param name="args">The arguments. The path to a valid bitmap file.</param>
-        /// <remarks>Writes a file of the same name with -wallpapered appended to the end in PNG format to the same location as the source.</remarks>
+        /// <param name="filePaths">The file paths.</param>
+        /// <remarks>
+        /// Writes a file of the same name with -wallpapered appended to the end in JPEG format to the same location as the source.
+        /// </remarks>
         public static void Main(String[] filePaths)
         {
             if(filePaths.Length < 1)
