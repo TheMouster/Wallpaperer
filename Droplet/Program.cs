@@ -40,38 +40,40 @@ namespace Wallpaperer.Droplet
         /// </summary>
         /// <param name="args">The arguments. The path to a valid bitmap file.</param>
         /// <remarks>Writes a file of the same name with -wallpapered appended to the end in PNG format to the same location as the source.</remarks>
-        public static void Main(String[] args)
+        public static void Main(String[] filePaths)
         {
-            if(args.Length < 1)
+            if(filePaths.Length < 1)
             {
                 DisplayInstructions();
                 return;
             }
 
-            String filePath = args[0];
-            String fileName = Path.GetFileNameWithoutExtension(filePath);
-            String fileDirectory = Path.GetDirectoryName(filePath);
-            String jpgFilePath = String.Format("{0}{1}{2}-wallpapered.jpg", fileDirectory, Path.DirectorySeparatorChar, fileName);
-
-            using (Bitmap sourceBitmap = new Bitmap(filePath))
+            foreach(var filePath in filePaths)
             {
-                //Check size
-                if(sourceBitmap.Width != TotalMonitorWidth || sourceBitmap.Height != MaximumMonitorHeight)
-                {
-                    DisplayInstructions();
-                    return;
-                }
+                String fileName = Path.GetFileNameWithoutExtension(filePath);
+                String fileDirectory = Path.GetDirectoryName(filePath);
+                String jpgFilePath = String.Format("{0}{1}{2}-wallpapered.jpg", fileDirectory, Path.DirectorySeparatorChar, fileName);
 
-                Bitmap wallpaper = CreateWallpaper(sourceBitmap);
-                
-                //Save as JPEG
-                var jpegImageCodecInfo = GetEncoderInfo("image/jpeg");
-                var qualityEncoder = Encoder.Quality;
-                var encoderParameters = new EncoderParameters(1);
-                var encoderParameter = new EncoderParameter(qualityEncoder, (Int64)JPEGQuality);
-                encoderParameters.Param[0] = encoderParameter;
-                wallpaper.Save(jpgFilePath, jpegImageCodecInfo, encoderParameters);
-            }            
+                using(Bitmap sourceBitmap = new Bitmap(filePath))
+                {
+                    //Check size
+                    if(sourceBitmap.Width != TotalMonitorWidth || sourceBitmap.Height != MaximumMonitorHeight)
+                    {
+                        DisplayInstructions();
+                        continue;
+                    }
+
+                    Bitmap wallpaper = CreateWallpaper(sourceBitmap);
+
+                    //Save as JPEG
+                    var jpegImageCodecInfo = GetEncoderInfo("image/jpeg");
+                    var qualityEncoder = Encoder.Quality;
+                    var encoderParameters = new EncoderParameters(1);
+                    var encoderParameter = new EncoderParameter(qualityEncoder, (Int64)JPEGQuality);
+                    encoderParameters.Param[0] = encoderParameter;
+                    wallpaper.Save(jpgFilePath, jpegImageCodecInfo, encoderParameters);
+                }    
+            }
         }
 
         /// <summary>
