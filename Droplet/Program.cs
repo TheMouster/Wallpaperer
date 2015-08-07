@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.Windows.Forms;
 using System.IO;
 
@@ -7,10 +8,11 @@ namespace Wallpaperer.Droplet
 {
     public class Program
     {
-        private static readonly Int32 MaxWidth;
-        private static readonly Int32 MaxHeight;
+        private static readonly Int32 TotalMonitorWidth;
+        private static readonly Int32 MaximumMonitorHeight;
         private static readonly Byte BezelWidth;
         private static readonly Byte DisplayCount;
+        private static readonly Byte JPEGQuality;
 
         /// <summary>
         /// Initializes the <see cref="Program"/> class.
@@ -19,89 +21,108 @@ namespace Wallpaperer.Droplet
         static Program()
         {
             BezelWidth = Settings.Default.BezelWidth;
+            JPEGQuality = Settings.Default.JPEGQuality;
 
             DisplayCount = (Byte)Screen.AllScreens.Length;
 
             //Compute the maximum width (MaxWidth) and maximum height (MaxHeight) that the wallpaper should be.
-            MaxWidth = 0; MaxHeight = 0;
-            foreach(var screen in Screen.AllScreens)
+            TotalMonitorWidth = 0; MaximumMonitorHeight = 0;
+            foreach(var display in Screen.AllScreens)
             {
-                MaxWidth += screen.Bounds.Width;
-                MaxHeight = Math.Max(screen.Bounds.Height, MaxHeight);
+                TotalMonitorWidth += display.Bounds.Width;
+                MaximumMonitorHeight = Math.Max(display.Bounds.Height, MaximumMonitorHeight);
             }
-            MaxWidth += BezelWidth * ( ( DisplayCount - 1 ) * 2 );            
+            TotalMonitorWidth += BezelWidth * ( ( DisplayCount - 1 ) * 2 );            
         }
 
         /// <summary>
         /// Takes a screen-size + internal bezel width sized bitmap and crops it to remove the area taken up by the bezels. Making the image appear as if it was seen through a window.
         /// </summary>
-        /// <param name="args">The arguments. The path to a valid bitmap file.</param>
-        /// <remarks>Writes a file of the same name with -wallpapered appended to the end in PNG format to the same location as the source.</remarks>
-        public static void Main(String[] args)
+        /// <param name="filePaths">The file paths.</param>
+        /// <remarks>
+        /// Writes a file of the same name with -wallpapered appended to the end in JPEG format to the same location as the source.
+        /// </remarks>
+        public static void Main(String[] filePaths)
         {
-            if(args.Length != 1)
+            if(filePaths.Length < 1)
             {
                 DisplayInstructions();
                 return;
             }
 
-            try
+            foreach(var filePath in filePaths)
             {
-                String filePath = args[0];
                 String fileName = Path.GetFileNameWithoutExtension(filePath);
                 String fileDirectory = Path.GetDirectoryName(filePath);
-                String newFilePath = String.Format("{0}{1}{2}-wallpapered.png",fileDirectory,Path.DirectorySeparatorChar,fileName);                
+                String jpgFilePath = String.Format("{0}{1}{2}-wallpapered.jpg", fileDirectory, Path.DirectorySeparatorChar, fileName);
 
-                using (Bitmap sourceBitmap = new Bitmap(filePath))
+                using(Bitmap sourceBitmap = new Bitmap(filePath))
                 {
                     //Check size
-                    if(sourceBitmap.Width != MaxWidth || sourceBitmap.Height != MaxHeight)
+                    if(sourceBitmap.Width != TotalMonitorWidth || sourceBitmap.Height != MaximumMonitorHeight)
                     {
                         DisplayInstructions();
-                        return;
+                        continue;
                     }
 
-                    //Wallpaper Bitmap
-                    Int32 croppedWidth = MaxWidth - ((DisplayCount - 1) * (BezelWidth * 2));
-                    Bitmap wallpaper = new Bitmap(croppedWidth,MaxHeight);
+                    Bitmap wallpaper = CreateWallpaper(sourceBitmap);
 
-                    //Set up cropping region and bitmap
-                    Size area = new Size(Screen.AllScreens[0].Bounds.Width, MaxHeight);
-                    Point sourceOrigin = new Point(0, 0);
-                    Point destinationOrigin = new Point(0, 0);
-                    Rectangle sourceRegion = new Rectangle(sourceOrigin, area);
-                    Rectangle destinationRegion = new Rectangle(sourceOrigin,area);                    
-
-                    Int32 monitorOrigin = 0, displayOrigin = 0;                    
-                    for (int i = 0; i < DisplayCount; i++)
-                    {
-                        //Compute bitmap source point and area
-                        sourceOrigin.X = monitorOrigin;
-                        sourceRegion.Location = sourceOrigin;
-                        sourceRegion.Width = Screen.AllScreens[i].Bounds.Width;
-
-                        //Compute bitmap destination point and area
-                        destinationOrigin.X = displayOrigin;
-                        destinationRegion.Location = destinationOrigin;
-                        destinationRegion.Width = Screen.AllScreens[i].Bounds.Width;
-                        
-                        CopyRegionIntoImage(sourceBitmap, sourceRegion, ref wallpaper, destinationRegion);
-
-                        //Move origins to next point
-                        Int32 currentMonitorWidth = Screen.AllScreens[Math.Max(i, i - 1)].Bounds.Width + ( BezelWidth * 2 );
-                        Int32 currentDisplayWidth = Screen.AllScreens[Math.Max(i, i - 1)].Bounds.Width;
-                        //NOTE: versus display width. Youʼre cropping from an image the width of the monitors (including bezels) and pasting into an image the size of the displays.
-                        monitorOrigin += currentMonitorWidth;
-                        displayOrigin += currentDisplayWidth;
-                    }
-
-                    wallpaper.Save(newFilePath);
-                }
+                    //Save as JPEG
+                    var jpegImageCodecInfo = GetEncoderInfo("image/jpeg");
+                    var qualityEncoder = Encoder.Quality;
+                    var encoderParameters = new EncoderParameters(1);
+                    var encoderParameter = new EncoderParameter(qualityEncoder, (Int64)JPEGQuality);
+                    encoderParameters.Param[0] = encoderParameter;
+                    wallpaper.Save(jpgFilePath, jpegImageCodecInfo, encoderParameters);
+                }    
             }
-            catch (Exception)
+        }
+
+        /// <summary>
+        /// Creates a wallpaper bitmap.
+        /// </summary>
+        /// <param name="sourceBitmap">The source bitmap.</param>
+        /// <returns>The bitmap cropped to allow for the monitor bezel.</returns>
+        private static Bitmap CreateWallpaper(Bitmap sourceBitmap)
+        {
+            if(BezelWidth <= 0)
+                return sourceBitmap;
+            
+            //Wallpaper Bitmap
+            Int32 croppedWidth = TotalMonitorWidth - ( ( DisplayCount - 1 ) * ( BezelWidth * 2 ) );
+            Bitmap wallpaper = new Bitmap(croppedWidth, MaximumMonitorHeight);
+
+            //Set up cropping region and bitmap
+            Size area = new Size(Screen.AllScreens[0].Bounds.Width, MaximumMonitorHeight);
+            Point sourceOrigin = new Point(0, 0);
+            Point destinationOrigin = new Point(0, 0);
+            Rectangle sourceRegion = new Rectangle(sourceOrigin, area);
+            Rectangle destinationRegion = new Rectangle(sourceOrigin, area);
+
+            Int32 monitorOrigin = 0, displayOrigin = 0;
+            for(int i = 0; i < DisplayCount; i++)
             {
-                throw;
+                //Compute bitmap source point and area
+                sourceOrigin.X = monitorOrigin;
+                sourceRegion.Location = sourceOrigin;
+                sourceRegion.Width = Screen.AllScreens[i].Bounds.Width;
+
+                //Compute bitmap destination point and area
+                destinationOrigin.X = displayOrigin;
+                destinationRegion.Location = destinationOrigin;
+                destinationRegion.Width = Screen.AllScreens[i].Bounds.Width;
+
+                CopyRegionIntoImage(sourceBitmap, sourceRegion, ref wallpaper, destinationRegion);
+
+                //Move origins to next point
+                Int32 currentMonitorWidth = Screen.AllScreens[Math.Max(i, i - 1)].Bounds.Width + ( BezelWidth * 2 );
+                Int32 currentDisplayWidth = Screen.AllScreens[Math.Max(i, i - 1)].Bounds.Width;
+                //NOTE: versus display width. Youʼre cropping from an image the width of the monitors (including bezels) and pasting into an image the size of the displays.
+                monitorOrigin += currentMonitorWidth;
+                displayOrigin += currentDisplayWidth;
             }
+
+            return wallpaper;
         }
 
         /// <summary>
@@ -154,7 +175,23 @@ namespace Wallpaperer.Droplet
         /// </summary>
         private static void DisplayInstructions()
         {
-            MessageBox.Show(String.Format("Please drop a {0} × {1} image on me.",MaxWidth,MaxHeight));
+            MessageBox.Show(String.Format("Please drop a {0} × {1} image on me.",TotalMonitorWidth,MaximumMonitorHeight));
+        }
+
+        /// <summary>
+        /// Gets the MIME encoder information.
+        /// </summary>
+        /// <param name="mimeType">The MIME type you want an encoder for.</param>
+        /// <returns>The ImageCodeInfo struct for the specified MIME type.</returns>
+        private static ImageCodecInfo GetEncoderInfo(String mimeType)
+        {
+            var encoders = ImageCodecInfo.GetImageEncoders();
+            for(int i = 0; i < encoders.Length; ++i)
+            {
+                if(encoders[i].MimeType == mimeType)
+                    return encoders[i];
+            }
+            return null;
         }
     }
 }
